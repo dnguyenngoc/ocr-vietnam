@@ -6,7 +6,7 @@ from settings import config
 import io
 from ocr_model import CompletedModel
 import numpy as np
-# from helpers import image_utils
+from helpers import image_utils
 from PIL import Image
 import cv2
 import requests
