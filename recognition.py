@@ -54,7 +54,6 @@ class TextRecognition(object):
         return config
 
     def predict(self, image):
-        image = Image.fromarray(image)
         result = self.detector.predict(image)
 
         return result

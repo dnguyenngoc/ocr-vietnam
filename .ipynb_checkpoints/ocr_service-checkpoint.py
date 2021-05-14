@@ -11,61 +11,47 @@ from PIL import Image
 import cv2
 import requests
 import schedule
+import translate
 
 
-# print('load model ...')
-# model = CompletedModel()
-# print('model is loaded.')
+print('load model ...')
+model = CompletedModel()
+print('model is loaded.')
 
 
 def job():
-    print('start')
     res = requests.get('http://{host}:{port}/api/v1/ml-ocr/not-process?limit=50'.format(host=config.BE_HOST, port = config.BE_PORT))
-    print('load 50 field', res.status_code)
+    print('[Load] load 50 field', res.status_code)
     if res.status_code != 200:
         print(res.json())
         return None
     imports= res.json()
+    document_id_check = imports[0]['document_id']
+    print(document_id_check)
     for item in imports:
+        if item['document_id'] != document_id_check:
+            data = {'document_id': document_id_check, 'status_code': 300}
+            res = requests.put('http://{host}:{port}/api/v1/ml-ocr/doc-export'.format(host=config.BE_HOST, port = config.BE_PORT), data = data)
+            print(res.status_code)
+            document_id_check = item['document_id']
+            print('[RUN-DOC]: ', item['document_id'])
+        
         if item['url'] == None:
             continue
-            print(item['url'])
-#         try:
-#             image = image_utils.read_image_from_url(item['url'])
-#             image = np.array(image)
-#             img_crop = image_utils.crop_image(image)
-#             im_height, im_width, _ = img_crop.shape
-#             name_doc = item['name'].split('.')[0]
-#             id_boxes, name_boxes, birth_boxes, home_boxes, add_boxes, category_index = model.detect_text_cmnd(img_crop)
-#             img_id_boxes, img_name_boxes, img_birth_boxes, img_add_boxes, img_home_boxes = (None, None, None, None, None)
-#             if id_boxes  != None: img_id_boxes = image_utils.handle_detection(id_boxes, img_crop)
-#             if name_boxes != None: img_name_boxes = image_utils.handle_detection(name_boxes, img_crop)
-#             if birth_boxes != None: img_birth_boxes = image_utils.handle_detection(birth_boxes, img_crop)
-#             if home_boxes != None: img_home_boxes = image_utils.handle_detection(home_boxes, img_crop)
-#             if add_boxes != None: img_add_boxes = image_utils.handle_detection(add_boxes, img_crop)
-                
-#         except Exception as e:
-#             print('[error]  with item: ', item)
-#             print('[error] when extract field with: ',e)
-#             r = bad_image(item['id'], 'identity-card', 500)
-#             print(r.json())
-#             continue
-
-#         list_fields = ['id',  'name', 'birthday', 'home_town', 'address']
-#         list_image_fields = [img_id_boxes, img_name_boxes, img_birth_boxes, img_home_boxes, img_add_boxes]
-#         for i in range(len(list_fields)):
-#             field_name = list_fields[i]
-#             name = item['name'].split('.')[0] + '_' + field_name + '.png'
-#             document_id = item['id']
-#             print('[run] upload field: ', field_name)
-#             image_now = list_image_fields[i]
-#             r = upload_normal(name, document_id, field_name, image_now)
-#             print(r.status_code)
-#         print('[run] upload crop_image > done')
-#         r = upload_crop(item['name'].split('.')[0] + '_' + 'crop_image.png',  item['id'], 'crop_image', img_crop)
-#         print(r.status_code)
-
-
+        print("[RUN-FIELD] ", "id: ", item['id'], 'field_id: ', item['field_id'], 'document_id: ', item['document_id'])
+        image = image_utils.read_image_from_url(item['url'])
+        image = np.asarray(image)
+        text = model.predict(image)
+        print(text)
+        data = {'id': item['id'], 'document_id': item['document_id'], 'value': text}
+        res = requests.put('http://{host}:{port}/api/v1/ml-ocr/complete-process'.format(host=config.BE_HOST, port = config.BE_PORT), data =data)
+    data = {'document_id': item['document_id'], 'status_code': 300}
+    res = requests.put('http://{host}:{port}/api/v1/ml-ocr/doc-export'.format(host=config.BE_HOST, port = config.BE_PORT), data = data)
+    print(res.status_code)
+    document_id_check = item['document_id']
+    print('[RUN-DOC]: ', item['document_id'])
+        
+    print("[COMPLETED]")
 
 schedule.every(1).seconds.do(job)
 while True:

@@ -10,7 +10,6 @@ from collections import defaultdict
 class Predictor(object):
     def __init__(self, config):
         device = config['device']
-
         model, vocab = build_model(config)
         weights = config['weights']
 
