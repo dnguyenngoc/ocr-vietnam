@@ -1,6 +1,0 @@
-import os
-
-ENVIRONMENT = os.getenv("ENVIRONMENT")
-SMALL_HEIGHT = 720
-BE_PORT = 8081
-BE_HOST = '10.1.33.76'
